@@ -2,8 +2,8 @@
 
 ## Status & Where to Pick Up
 
-**Last updated:** 2026-04-10
-**Current status:** Phase 2 in progress 🔄 — login page rendering, auth flow not yet tested end-to-end
+**Last updated:** 2026-04-13
+**Current status:** Phase 2 in progress 🔄 — Google OAuth working, onboarding steps 1–3 confirmed, board selection (step 4) in progress
 
 ### Phase 1 — DONE ✅
 - TypeScript project scaffolded, all dependencies installed
@@ -18,13 +18,13 @@
 
 ### Phase 2 — In Progress 🔄
 
-#### What was built this session
+#### What was built (previous session)
 - `src/types/express.d.ts` — `req.user` augmentation
 - `src/services/monday.ts` — Monday OAuth URL builder, token exchange, board list GraphQL, task creation stub
 - `src/services/supabase.ts` — added `createAuthClient(req, res)` with per-request PKCE cookie storage adapter
 - `src/middleware/auth.ts` — `requireAuth` middleware using `getUser()` (server-validated)
 - `src/views/layout.ts` — shared HTML shell: GTM-MDD8QKSD, EB Garamond, CSS vars, `sidebar()` helper
-- `src/views/login.ts` — split-screen login page ✅ confirmed rendering
+- `src/views/login.ts` — split-screen login page ✅
 - `src/views/onboarding.ts` — 6-step wizard with step indicator, all step content
 - `src/views/dashboard.ts` — dashboard + settings pages with sidebar
 - `src/routes/auth.ts` — Google OAuth, Monday OAuth, logout (full implementation)
@@ -32,31 +32,40 @@
 - `src/routes/dashboard.ts` — dashboard + settings routes
 - `src/server.ts` — wired up all new routes, replaced login stub, added MONDAY vars to REQUIRED
 - `.env.example` — updated with Phase 2 vars
-- Fixed redirect loop bug: `router.use(requireAuth)` was intercepting `/login` — moved to per-route middleware
+
+#### Bugs fixed (2026-04-13 session)
+- **`maxAge` unit bug** — `res.cookie` maxAge is milliseconds; was set in seconds. Fixed in `src/routes/auth.ts` (Monday state cookie: `600` → `10 * 60 * 1000`) and `src/services/supabase.ts` (session cookie: `60 * 60 * 24 * 7` → `7 * 24 * 60 * 60 * 1000`)
+- **Session cookie overflow** — Supabase session JSON (~3634 chars) exceeded the 4096-byte browser cookie limit after URL-encoding. Replaced the storage adapter in `src/services/supabase.ts` with chunked base64url encoding: session stored across `key.0` / `key.1` cookies (~3600 chars each), reassembled on read. No `@supabase/ssr` dependency needed.
+- **`storageKey` override ignored** — removed `storageKey: 'sb-auth-token'` override; Supabase now uses its default project-ref-based key (`sb-pwqftsfdnmeovowmtfou-auth-token`)
+- **Monday boards GraphQL** — `board_kind` field returned `Unauthorized field or type` (app scope doesn't grant access). Removed `board_kind` from the query and the sub-items filter in `src/services/monday.ts`
+- **Google OAuth setup** — required one-time GCP + Supabase configuration: Google Cloud Console OAuth app with redirect URI `https://pwqftsfdnmeovowmtfou.supabase.co/auth/v1/callback`, and `http://localhost:3000/auth/callback` added to Supabase allowed redirect URLs
 
 #### What still needs testing (pick up here next session)
-1. Click "Sign in with Google" → verify Google OAuth flow completes and lands on `/onboarding?step=1`
-2. Step 1: Submit invalid Slack ID → error shown. Submit valid ID (e.g. `U01234ABCDE`) → advance to step 2
-3. Step 2: Submit invalid Granola key → error. Submit valid key → advance to step 3
-4. Step 3: Click "Connect Monday.com" → Monday OAuth → land on step 4 with board dropdown
-5. Step 4: Select board → advance to step 5 with all green ✓
+1. ✅ Click "Sign in with Google" → OAuth completes → lands on `/onboarding?step=1`
+2. ✅ Step 1: Slack ID validation (error on invalid, advance on valid)
+3. ✅ Step 2: Granola key validation (error on invalid, advance on valid)
+4. ✅ Step 3: "Connect Monday.com" → Monday OAuth → redirects to step 4
+5. 🔄 Step 4: Board dropdown populates → select board → advance to step 5 ← **pick up here** (Monday `board_kind` GraphQL fix just applied)
 6. Step 5 → Step 6 → redirect to `/dashboard`
-7. Verify DB: `users.onboarding_complete = true`, `slack_member_id` set, `user_credentials` has both rows
+7. Verify DB: `users.onboarding_complete = true`, `slack_member_id` set, `user_credentials` has both rows (granola + monday)
 8. Sign out → cookie cleared → `/dashboard` redirects to `/login`
 9. Sign in again → lands on `/dashboard` (not onboarding)
 
 ### To resume development
 1. `cd /Users/jamescorr/Desktop/Projects/active_projects/Oatput`
-2. `npm run dev` (runs on localhost:3000)
-3. Verify login page: `http://localhost:3000/login`
-4. Continue testing the auth + onboarding flow above
+2. `npm run dev > /tmp/oatput-dev.log 2>&1 &` (logs to file for debugging)
+3. Verify: `curl http://localhost:3000/health`
+4. Browser: `http://localhost:3000/login`
+5. Continue from step 4 of the onboarding flow above
 
 ### Notes
-- `NODE_TLS_REJECT_UNAUTHORIZED=0` is set in the `dev` npm script — this fixes a macOS SSL cert issue and is dev-only (not needed in production on Fly.io)
+- `NODE_TLS_REJECT_UNAUTHORIZED=0` is set in the `dev` npm script — dev-only macOS SSL fix, not needed on Fly.io
 - Supabase project: `pwqftsfdnmeovowmtfou.supabase.co`
 - `.env` file is local only (not committed) — contains Supabase URL, anon key, service role key, encryption key, Monday client ID/secret, APP_URL
-- Auth uses PKCE flow via custom cookie storage adapter in `createAuthClient` — no `@supabase/ssr` needed
+- Auth uses PKCE flow via chunked base64url cookie storage adapter in `createAuthClient` — no `@supabase/ssr` needed
 - `requireAuth` must be applied per-route (not via `router.use`) to avoid intercepting public routes like `/login`
+- Debug logging still present in `src/middleware/auth.ts` and `src/routes/auth.ts` — remove before Phase 3
+- Monday OAuth app scope does not include `board_kind` field — boards query uses only `{ id name }`
 
 ---
 

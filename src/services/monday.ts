@@ -53,7 +53,7 @@ export async function getMondayBoards(accessToken: string): Promise<{ id: string
       'Content-Type': 'application/json',
       Authorization: `Bearer ${accessToken}`,
     },
-    body: JSON.stringify({ query: '{ boards(limit: 50) { id name board_kind } }' }),
+    body: JSON.stringify({ query: '{ boards(limit: 50) { id name } }' }),
   });
 
   if (!response.ok) {
@@ -62,7 +62,7 @@ export async function getMondayBoards(accessToken: string): Promise<{ id: string
   }
 
   const data = (await response.json()) as {
-    data?: { boards?: { id: string; name: string; board_kind?: string }[] };
+    data?: { boards?: { id: string; name: string }[] };
     errors?: { message: string }[];
   };
 
@@ -70,11 +70,7 @@ export async function getMondayBoards(accessToken: string): Promise<{ id: string
     throw new Error(`[monday] GraphQL error: ${data.errors[0].message}`);
   }
 
-  const boards = data.data?.boards ?? [];
-  // Filter out sub-item boards which are internal noise
-  return boards
-    .filter((b) => b.board_kind !== 'sub_items_board')
-    .map((b) => ({ id: b.id, name: b.name }));
+  return (data.data?.boards ?? []).map((b) => ({ id: b.id, name: b.name }));
 }
 
 // Stub — full implementation in Phase 5

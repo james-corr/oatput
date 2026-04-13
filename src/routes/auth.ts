@@ -36,14 +36,18 @@ router.get('/auth/google', async (req, res) => {
 // GET /auth/callback — Supabase redirects here after Google OAuth with ?code=
 router.get('/auth/callback', async (req, res) => {
   const code = req.query.code as string | undefined;
+  console.log('[auth/callback] hit — code present:', !!code, '| query keys:', Object.keys(req.query));
 
   if (!code) {
+    console.warn('[auth/callback] no code — redirecting to login');
     res.redirect('/login?error=missing_code');
     return;
   }
 
   const supabase = createAuthClient(req, res);
   const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+
+  console.log('[auth/callback] exchange result — session:', !!data.session, '| error:', error?.message ?? null);
 
   if (error || !data.session) {
     console.error('[auth] Session exchange error:', error?.message);
@@ -77,7 +81,7 @@ router.get('/auth/monday', requireAuth, (req, res) => {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
-    maxAge: 600, // 10 minutes
+    maxAge: 10 * 60 * 1000, // 10 minutes in ms
     path: '/',
   });
 
@@ -137,7 +141,6 @@ router.get('/auth/monday/callback', requireAuth, async (req, res) => {
 router.get('/auth/logout', async (req, res) => {
   const supabase = createAuthClient(req, res);
   await supabase.auth.signOut().catch(() => {}); // signOut calls removeItem on storage (clears cookie)
-  res.clearCookie('sb-auth-token', { path: '/' }); // belt-and-suspenders
   res.redirect('/login');
 });
 

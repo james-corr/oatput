@@ -15,3 +15,7 @@ dist/
 # Logs
 *.log
 npm-debug.log*
+
+# Playwright test artifacts
+.playwright-cli/
+*.png

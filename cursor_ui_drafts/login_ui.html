@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Oatput — Login</title>
+  <style>
+    :root {
+      --bg: #3d3320;
+      --surface: #4a4036;
+      --text: #e8dfc8;
+      --text-muted: #b0a08c;
+      --taupe: #9a8b78;
+      --grain: #d4ba7a;
+      --grain-outline: #9a7b3a;
+      --leaf: #6d8c3a;
+      --shadow: rgba(0, 0, 0, 0.22);
+      --login-panel: #e8dfc8;
+      --login-panel-text: #3d3320;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Georgia, "Times New Roman", Times, serif;
+      background: var(--bg);
+      color: var(--text);
+      letter-spacing: 0.06em;
+      line-height: 1.55;
+    }
+
+    .preview-nav {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem 1rem;
+      align-items: center;
+      justify-content: center;
+      padding: 0.75rem 1rem;
+      background: color-mix(in srgb, var(--bg) 92%, black);
+      border-bottom: 1px solid color-mix(in srgb, var(--grain-outline) 45%, transparent);
+      backdrop-filter: blur(10px);
+    }
+
+    .preview-nav a {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.2em;
+      color: var(--taupe);
+      text-decoration: none;
+    }
+
+    .preview-nav a:hover,
+    .preview-nav a[aria-current="page"] {
+      color: var(--text);
+    }
+
+    .login-wrap {
+      position: relative;
+      display: grid;
+      grid-template-columns: 3fr 2fr;
+      min-height: calc(100vh - 52px);
+    }
+
+    @media (max-width: 800px) {
+      .login-wrap {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .login-hero {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 3rem 2rem;
+      overflow: hidden;
+      background: var(--bg);
+    }
+
+    .login-oats {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+
+    .login-oats svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .logo-block {
+      position: relative;
+      z-index: 1;
+      text-align: center;
+      max-width: 320px;
+    }
+
+    .logo-mark {
+      width: 112px;
+      height: 112px;
+      margin: 0 auto 1.5rem;
+      border-radius: 12px;
+      border: 2px solid var(--grain-outline);
+      background: var(--surface);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .logo-mark svg {
+      width: 64px;
+      height: 64px;
+    }
+
+    .wordmark {
+      font-size: 1.35rem;
+      letter-spacing: 0.35em;
+      text-indent: 0.35em;
+      margin: 0 0 0.75rem;
+      color: var(--text);
+    }
+
+    .tagline {
+      font-size: 0.85rem;
+      letter-spacing: 0.18em;
+      color: var(--text-muted);
+      margin: 0;
+    }
+
+    .login-panel {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 3rem 2.5rem;
+      background: var(--login-panel);
+      border-left: 1px solid color-mix(in srgb, var(--grain-outline) 55%, transparent);
+    }
+
+    @media (max-width: 800px) {
+      .login-panel {
+        border-left: none;
+        border-top: 1px solid color-mix(in srgb, var(--grain-outline) 55%, transparent);
+      }
+    }
+
+    .label-caps {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.22em;
+      color: var(--login-panel-text);
+      margin: 0 0 0.5rem;
+    }
+
+    .login-panel p {
+      margin: 0 0 2rem;
+      font-size: 0.9rem;
+      color: color-mix(in srgb, var(--login-panel-text) 72%, var(--grain-outline));
+      letter-spacing: 0.08em;
+    }
+
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.65rem;
+      width: 100%;
+      padding: 14px 24px;
+      font-family: inherit;
+      font-size: 0.82rem;
+      letter-spacing: 0.12em;
+      color: var(--login-panel-text);
+      background: var(--grain);
+      border: 1px solid var(--grain-outline);
+      border-radius: 8px;
+      cursor: pointer;
+      box-shadow: 0 4px 14px var(--shadow);
+      transition: filter 0.15s ease, transform 0.15s ease;
+    }
+
+    .btn-primary:hover {
+      filter: brightness(1.03);
+      transform: translateY(-1px);
+    }
+
+    .btn-primary svg {
+      flex-shrink: 0;
+    }
+
+    .text-link {
+      margin-top: 1.25rem;
+      font-size: 0.75rem;
+      letter-spacing: 0.1em;
+      color: var(--grain-outline);
+      text-align: center;
+      text-decoration: underline;
+      text-underline-offset: 4px;
+      cursor: default;
+    }
+  </style>
+</head>
+<body>
+  <nav class="preview-nav" aria-label="UI previews">
+    <a href="login_ui.html" aria-current="page">Login</a>
+    <a href="onboarding_ui.html">Onboarding</a>
+    <a href="dashboard_ui.html">Dashboard</a>
+  </nav>
+
+  <div class="login-wrap">
+    <div class="login-hero">
+      <div class="login-oats" aria-hidden="true">
+        <svg viewBox="0 0 480 720" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+          <g fill="#d4ba7a">
+            <ellipse cx="72" cy="118" rx="18" ry="7" transform="rotate(-32 72 118)" opacity="0.55"/>
+            <ellipse cx="95" cy="132" rx="16" ry="6" transform="rotate(12 95 132)" opacity="0.45"/>
+            <ellipse cx="48" cy="220" rx="20" ry="8" transform="rotate(24 48 220)" opacity="0.5"/>
+            <ellipse cx="320" cy="96" rx="17" ry="7" transform="rotate(-8 320 96)" opacity="0.4"/>
+            <ellipse cx="380" cy="200" rx="19" ry="7" transform="rotate(40 380 200)" opacity="0.5"/>
+            <ellipse cx="280" cy="340" rx="21" ry="8" transform="rotate(-18 280 340)" opacity="0.42"/>
+            <ellipse cx="120" cy="400" rx="18" ry="7" transform="rotate(55 120 400)" opacity="0.38"/>
+            <ellipse cx="400" cy="480" rx="22" ry="8" transform="rotate(-42 400 480)" opacity="0.48"/>
+            <ellipse cx="60" cy="520" rx="16" ry="6" transform="rotate(8 60 520)" opacity="0.35"/>
+            <ellipse cx="220" cy="580" rx="20" ry="7" transform="rotate(28 220 580)" opacity="0.4"/>
+          </g>
+          <g fill="#9a7b3a">
+            <ellipse cx="140" cy="80" rx="14" ry="6" transform="rotate(18 140 80)" opacity="0.5"/>
+            <ellipse cx="200" cy="180" rx="16" ry="6" transform="rotate(-25 200 180)" opacity="0.45"/>
+            <ellipse cx="340" cy="260" rx="15" ry="6" transform="rotate(36 340 260)" opacity="0.42"/>
+            <ellipse cx="88" cy="300" rx="17" ry="7" transform="rotate(-12 88 300)" opacity="0.48"/>
+            <ellipse cx="260" cy="460" rx="14" ry="5" transform="rotate(50 260 460)" opacity="0.4"/>
+            <ellipse cx="420" cy="620" rx="18" ry="7" transform="rotate(-30 420 620)" opacity="0.38"/>
+          </g>
+          <g fill="#6d8c3a">
+            <ellipse cx="180" cy="140" rx="12" ry="5" transform="rotate(42 180 140)" opacity="0.35"/>
+            <ellipse cx="400" cy="120" rx="11" ry="4" transform="rotate(-55 400 120)" opacity="0.3"/>
+            <ellipse cx="30" cy="380" rx="13" ry="5" transform="rotate(8 30 380)" opacity="0.32"/>
+            <ellipse cx="360" cy="400" rx="12" ry="5" transform="rotate(22 360 400)" opacity="0.34"/>
+            <ellipse cx="160" cy="560" rx="14" ry="5" transform="rotate(-38 160 560)" opacity="0.36"/>
+          </g>
+          <g fill="#e8dfc8">
+            <ellipse cx="250" cy="60" rx="10" ry="4" transform="rotate(6 250 60)" opacity="0.14"/>
+            <ellipse cx="420" cy="340" rx="9" ry="4" transform="rotate(-20 420 340)" opacity="0.12"/>
+            <ellipse cx="100" cy="620" rx="11" ry="4" transform="rotate(30 100 620)" opacity="0.1"/>
+          </g>
+        </svg>
+      </div>
+      <div class="logo-block">
+        <div class="logo-mark" aria-hidden="true">
+          <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path d="M18 40c5-10 12-18 24-20" stroke="#9a7b3a" stroke-width="2" stroke-linecap="round"/>
+            <path d="M22 44c7-5 14-7 22-6" stroke="#d4ba7a" stroke-width="2.2" stroke-linecap="round"/>
+            <path d="M38 20c-2 7-2 14 3 21" stroke="#6d8c3a" stroke-width="2" stroke-linecap="round"/>
+            <path d="M28 48l7 5 10-12" stroke="#6d8c3a" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <p class="wordmark">OATPUT</p>
+        <p class="tagline">Meeting to action. Amplified.</p>
+      </div>
+    </div>
+    <div class="login-panel">
+      <p class="label-caps" id="login-heading">Welcome back</p>
+      <p>Sign in to connect Granola, Slack, and Monday.com.</p>
+      <button type="button" class="btn-primary">
+        <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
+          <path fill="#3d3320" d="M43.6 20.5H42V20H24v8h11.3C33.9 32.5 30.2 35 24 35c-6.1 0-11.4-3.4-14-8.4 0-.1-.1-.2-.1-.3v-3.7h-3.9C5.9 27.2 5 29.6 5 32c0 11.6 9.4 21 21 21s21-9.4 21-21c0-1.7-.2-3.4-.6-5H43.6z"/>
+          <path fill="#3d3320" d="M6.3 14.7l6.6 4.8C15.1 14.1 19.2 11 24 11c3.1 0 5.9 1.1 8.1 2.9l6-6C34.7 4.8 29.6 3 24 3 16.3 3 9.5 6.8 5.5 12.5c-.5.7-.9 1.4-1.3 2.2l2.1 0z" opacity="0.85"/>
+        </svg>
+        Continue with Google
+      </button>
+      <p class="text-link">What is Oatput?</p>
+    </div>
+  </div>
+</body>
+</html>

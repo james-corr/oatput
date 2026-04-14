@@ -2,8 +2,8 @@
 
 ## Status & Where to Pick Up
 
-**Last updated:** 2026-04-13
-**Current status:** Phase 2 DONE ✅ — full onboarding flow confirmed end-to-end, all credentials stored, user lands on dashboard
+**Last updated:** 2026-04-14
+**Current status:** Phase 3 DONE ✅ — Granola polling, action item extraction (regex + Claude), scheduler wired up
 
 ### Phase 1 — DONE ✅
 - TypeScript project scaffolded, all dependencies installed
@@ -64,15 +64,56 @@
 - `.env` file is local only (not committed) — contains Supabase URL, anon key, service role key, encryption key, Monday client ID/secret, APP_URL
 - Auth uses PKCE flow via chunked base64url cookie storage adapter in `createAuthClient` — no `@supabase/ssr` needed
 - `requireAuth` must be applied per-route (not via `router.use`) to avoid intercepting public routes like `/login`
-- Debug logging still present in `src/middleware/auth.ts` and `src/routes/auth.ts` — remove before Phase 3
 - Monday OAuth app requires `boards:read` + `boards:write` scopes configured in Monday developer center
 
-### To resume development (Phase 3)
+### Phase 3 — DONE ✅
+
+#### What was built
+- `src/services/granola.ts` — two-call pattern: `fetchNewNotes()` fetches note list (metadata only), then `fetchNoteContent()` calls `GET /v1/notes/:id` per note for full content; 15s AbortController timeout on each call; client-side watermark filtering
+- `src/services/extractor.ts` — `regexScanForActionItems()` (Pass 1) + `llmExtractActionItems()` with `claude-haiku-4-5-20251001` + ephemeral prompt caching (Pass 2); graceful fallback to regex-only on LLM error
+- `src/services/scheduler.ts` — `startScheduler()` with per-user staggered `setTimeout` → `setInterval` (15 min); `getWatermark()` uses `MAX(processed_at)` from DB (survives restarts); crash-safe insert order (action items first, `processed_notes` last)
+- `scripts/test-extractor.ts` — standalone smoke test (`npm run test:extractor`)
+- `src/server.ts` — `ANTHROPIC_API_KEY` added to `REQUIRED`; `startScheduler()` called after `app.listen()`
+- `src/routes/dashboard.ts` — `GET /dev/poll/:userId` trigger route (dev-only, gated by `NODE_ENV !== 'production'`)
+- `.env.example` — `ANTHROPIC_API_KEY` uncommented
+- Debug logging removed from `src/middleware/auth.ts` and `src/routes/auth.ts`
+- `package.json` — `@anthropic-ai/sdk` added; `test:extractor` npm script added
+
+#### Bugs discovered and fixed during testing
+- **Granola list endpoint is metadata-only** — `GET /v1/notes` returns id/title/owner/timestamps but no content. Fixed by adding `fetchNoteContent()` which calls `GET /v1/notes/:id` per note
+- **Wrong content field names** — original code tried `content`/`transcript`/`notes`; actual individual note fields are `summary_markdown` and `summary_text` (user-editable notes) plus a structured `transcript` object. Fixed in `resolveNoteText()` to try `summary_markdown` → `summary_text` → transcript text extraction
+- **`created_after` query param ignored by Granola** — passing `created_after` as a URL param caused Granola to return `{"notes":[],"hasMore":false,"cursor":null}`. Removed the query param; watermark filtering now done client-side on `note.created_at`
+- **macOS SSL error in test script** — `NODE_TLS_REJECT_UNAUTHORIZED=0` required for Anthropic SDK calls in dev, same as the Express server. Added to `test:extractor` npm script
+
+#### Confirmed working ✅
+- `npm run test:extractor` — Claude returns 10 clean action items from sample transcript
+- `curl http://localhost:3000/dev/poll/USER_ID` — polls Granola, fetches content per note, extracts action items, writes to DB
+- Verified in Supabase: `processed_notes` has 10 rows; `pending_action_items` has 91 rows across 10 meetings
+- Re-polling the same notes produces no duplicates (watermark + `processed_notes` unique constraint)
+
+#### Granola API — confirmed shape
+- Base URL: `https://public-api.granola.ai`
+- Auth: `Authorization: Bearer <apiKey>`
+- `GET /v1/notes` → `{ notes: [...], hasMore: bool, cursor: null }` — metadata only (id, title, owner, created_at, updated_at, calendar_event, attendees)
+- `GET /v1/notes/:id` → full note with `summary_markdown`, `summary_text`, `transcript` (structured array of segments), `attendees`, `folder_membership`
+- No working `created_after` query param — filter client-side
+
+#### Notes
+- Scheduler only picks up users active at startup; new users after server start included on next restart (Phase 5/6 enhancement)
+- `GET /dev/poll/:userId` absent in production (`NODE_ENV=production`)
+- Watermark defaults to `now - 24h` for new users
+
+### To resume development (Phase 4)
 1. `cd /Users/jamescorr/Desktop/Projects/active_projects/Oatput`
-2. `npm run dev > /tmp/oatput-dev.log 2>&1 &`
-3. Verify: `curl http://localhost:3000/health`
-4. Remove debug logging from `src/middleware/auth.ts` and `src/routes/auth.ts`
-5. Begin Phase 3: Granola polling + action item extraction
+2. `npm run dev` (ANTHROPIC_API_KEY already in .env)
+3. Phase 4: Slack delivery + approve/deny interactions
+   - Create Slack app at api.slack.com → get Bot Token + Signing Secret
+   - Add `SLACK_BOT_TOKEN` + `SLACK_SIGNING_SECRET` to `.env`
+   - Build `src/services/slack.ts` — Block Kit DMs with Approve/Deny buttons
+   - Build `POST /slack/interactions` — verify signing secret, route button clicks
+   - On deny: update `status = 'denied'`, update Slack message to "❌ Skipped"
+   - On approve: update `status = 'approved'`, stub Monday call (Phase 5 completes it)
+   - `pending_action_items` already has rows from Phase 3 testing — usable for Phase 4 Slack testing
 
 ---
 

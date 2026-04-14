@@ -4,6 +4,7 @@ import { serviceClient } from '../services/supabase';
 import { decrypt } from '../services/encryption';
 import { getMondayBoards } from '../services/monday';
 import { dashboardPage, settingsPage } from '../views/dashboard';
+import { pollUser } from '../services/scheduler';
 
 const router = Router();
 
@@ -59,5 +60,15 @@ router.get('/settings', requireAuth, async (req, res) => {
     slackMemberId: user?.slack_member_id ?? undefined,
   }));
 });
+
+// Dev-only: manually trigger a poll for a specific user without waiting 15 minutes.
+// Usage: curl http://localhost:3000/dev/poll/<userId>
+if (process.env.NODE_ENV !== 'production') {
+  router.get('/dev/poll/:userId', async (req, res) => {
+    const { userId } = req.params;
+    await pollUser(userId);
+    res.json({ ok: true, userId });
+  });
+}
 
 export default router;

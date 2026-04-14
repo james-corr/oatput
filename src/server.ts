@@ -3,7 +3,7 @@ import 'dotenv/config';
 // Validate required env vars before importing services that depend on them
 const REQUIRED = [
   'SUPABASE_URL', 'SUPABASE_ANON_KEY', 'SUPABASE_SERVICE_ROLE_KEY', 'ENCRYPTION_KEY',
-  'MONDAY_CLIENT_ID', 'MONDAY_CLIENT_SECRET', 'APP_URL',
+  'MONDAY_CLIENT_ID', 'MONDAY_CLIENT_SECRET', 'APP_URL', 'ANTHROPIC_API_KEY',
 ];
 const missing = REQUIRED.filter((k) => !process.env[k]);
 if (missing.length > 0) {
@@ -21,6 +21,7 @@ import authRouter from './routes/auth';
 import onboardingRouter from './routes/onboarding';
 import dashboardRouter from './routes/dashboard';
 import { loginPage } from './views/login';
+import { startScheduler } from './services/scheduler';
 
 const app = express();
 const PORT = process.env.PORT ?? 3000;
@@ -52,6 +53,7 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
 
 app.listen(PORT, () => {
   console.log(`[oatput] Server running on http://localhost:${PORT}`);
+  startScheduler();
 });
 
 export default app;

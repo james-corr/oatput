@@ -36,18 +36,14 @@ router.get('/auth/google', async (req, res) => {
 // GET /auth/callback — Supabase redirects here after Google OAuth with ?code=
 router.get('/auth/callback', async (req, res) => {
   const code = req.query.code as string | undefined;
-  console.log('[auth/callback] hit — code present:', !!code, '| query keys:', Object.keys(req.query));
 
   if (!code) {
-    console.warn('[auth/callback] no code — redirecting to login');
     res.redirect('/login?error=missing_code');
     return;
   }
 
   const supabase = createAuthClient(req, res);
   const { data, error } = await supabase.auth.exchangeCodeForSession(code);
-
-  console.log('[auth/callback] exchange result — session:', !!data.session, '| error:', error?.message ?? null);
 
   if (error || !data.session) {
     console.error('[auth] Session exchange error:', error?.message);

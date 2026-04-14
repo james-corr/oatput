@@ -117,7 +117,7 @@ function stepContent(step: number, data: OnboardingPageData): string {
         <h2 style="font-size: 1.4rem; font-weight: 400; margin: 0 0 8px; color: var(--text);">Connect Slack</h2>
         <p style="color: var(--taupe); margin: 0 0 24px; font-size: 0.95rem;">
           Enter your Slack member ID so we know where to send your action items.<br>
-          Find it in Slack: click your name → <em>View full profile</em> → copy Member ID.<br>
+          Find it in Slack: click your picture/name at the bottom left → <em>Profile</em> → click the ellipsis (···) → <em>Copy Member ID</em>.<br>
           It begins with <strong>U</strong> followed by 10 uppercase letters or numbers.
         </p>
         ${err}
@@ -130,10 +130,9 @@ function stepContent(step: number, data: OnboardingPageData): string {
       return `
         <h2 style="font-size: 1.4rem; font-weight: 400; margin: 0 0 8px; color: var(--text);">Connect Granola</h2>
         <p style="color: var(--taupe); margin: 0 0 8px; font-size: 0.95rem;">
-          Open Granola → <em>Settings</em> → <em>Workspaces</em> → <em>API</em> tab → <em>Create API key</em>.<br>
-          Paste your key below.
+          Open Granola → <em>Preferences</em> → <em>API</em> → <em>Generate New API Key</em>.<br>
+          Select the <strong>Personal</strong> key type, then paste it below.
         </p>
-        <p style="color: var(--taupe); font-size: 0.8rem; margin: 0 0 20px; font-style: italic;">Requires a Granola Enterprise plan.</p>
         ${err}
         <form method="POST" action="/onboarding?step=2">
           ${formInput({ name: 'granola_api_key', type: 'password', placeholder: 'Paste your Granola API key' })}

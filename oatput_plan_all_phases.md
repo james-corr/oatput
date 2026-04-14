@@ -3,7 +3,7 @@
 ## Status & Where to Pick Up
 
 **Last updated:** 2026-04-13
-**Current status:** Phase 2 in progress 🔄 — Google OAuth working, onboarding steps 1–3 confirmed, board selection (step 4) in progress
+**Current status:** Phase 2 DONE ✅ — full onboarding flow confirmed end-to-end, all credentials stored, user lands on dashboard
 
 ### Phase 1 — DONE ✅
 - TypeScript project scaffolded, all dependencies installed
@@ -16,9 +16,9 @@
 - `fly.toml` + `Dockerfile` written, deployment deferred to Phase 6
 - `public/oatPut_logo.png` in place as static asset
 
-### Phase 2 — In Progress 🔄
+### Phase 2 — DONE ✅
 
-#### What was built (previous session)
+#### What was built
 - `src/types/express.d.ts` — `req.user` augmentation
 - `src/services/monday.ts` — Monday OAuth URL builder, token exchange, board list GraphQL, task creation stub
 - `src/services/supabase.ts` — added `createAuthClient(req, res)` with per-request PKCE cookie storage adapter
@@ -33,30 +33,30 @@
 - `src/server.ts` — wired up all new routes, replaced login stub, added MONDAY vars to REQUIRED
 - `.env.example` — updated with Phase 2 vars
 
-#### Bugs fixed (2026-04-13 session)
-- **`maxAge` unit bug** — `res.cookie` maxAge is milliseconds; was set in seconds. Fixed in `src/routes/auth.ts` (Monday state cookie: `600` → `10 * 60 * 1000`) and `src/services/supabase.ts` (session cookie: `60 * 60 * 24 * 7` → `7 * 24 * 60 * 60 * 1000`)
-- **Session cookie overflow** — Supabase session JSON (~3634 chars) exceeded the 4096-byte browser cookie limit after URL-encoding. Replaced the storage adapter in `src/services/supabase.ts` with chunked base64url encoding: session stored across `key.0` / `key.1` cookies (~3600 chars each), reassembled on read. No `@supabase/ssr` dependency needed.
-- **`storageKey` override ignored** — removed `storageKey: 'sb-auth-token'` override; Supabase now uses its default project-ref-based key (`sb-pwqftsfdnmeovowmtfou-auth-token`)
-- **Monday boards GraphQL** — `board_kind` field returned `Unauthorized field or type` (app scope doesn't grant access). Removed `board_kind` from the query and the sub-items filter in `src/services/monday.ts`
-- **Google OAuth setup** — required one-time GCP + Supabase configuration: Google Cloud Console OAuth app with redirect URI `https://pwqftsfdnmeovowmtfou.supabase.co/auth/v1/callback`, and `http://localhost:3000/auth/callback` added to Supabase allowed redirect URLs
+#### Bugs fixed
+- **`maxAge` unit bug** — `res.cookie` maxAge is milliseconds; was set in seconds. Fixed in `src/routes/auth.ts` and `src/services/supabase.ts`
+- **Session cookie overflow** — Supabase session JSON exceeded 4096-byte limit. Replaced with chunked base64url encoding across `key.0`/`key.1` cookies in `src/services/supabase.ts`
+- **`storageKey` override ignored** — removed; Supabase now uses default project-ref-based key (`sb-pwqftsfdnmeovowmtfou-auth-token`)
+- **Monday boards GraphQL** — `board_kind` field unauthorized; removed from query. Boards query is now `{ boards(limit: 50) { id name } }`
+- **Monday OAuth scopes** — `boards:read`/`boards:write` were not configured on the Monday OAuth app → boards query returned "Unauthorized field or type". Fixed by: (1) adding scopes in Monday developer center, (2) adding `&scope=boards%3Aread%20boards%3Awrite` to `getMondayAuthUrl()` in `src/services/monday.ts`
+- **Silent board fetch failure** — step 4 showed empty dropdown with no message on API error. Now shows actionable error via `try/catch` + `errorMessage` prop
+- **POST step 4 validation** — re-fetching boards during submit failed silently; now skips validation if fetch returns `null` instead of reporting "Board not found"
+- **Google OAuth setup** — one-time GCP + Supabase config: Google Cloud Console OAuth app with redirect URI `https://pwqftsfdnmeovowmtfou.supabase.co/auth/v1/callback`; `http://localhost:3000/auth/callback` added to Supabase allowed redirect URLs
+- **UI text** — step 1 Slack instructions corrected (bottom-left picture → Profile → ··· → Copy Member ID); step 2 Granola instructions corrected (Preferences → API → Generate New API Key, Personal type)
 
-#### What still needs testing (pick up here next session)
-1. ✅ Click "Sign in with Google" → OAuth completes → lands on `/onboarding?step=1`
-2. ✅ Step 1: Slack ID validation (error on invalid, advance on valid)
-3. ✅ Step 2: Granola key validation (error on invalid, advance on valid)
-4. ✅ Step 3: "Connect Monday.com" → Monday OAuth → redirects to step 4
-5. 🔄 Step 4: Board dropdown populates → select board → advance to step 5 ← **pick up here** (Monday `board_kind` GraphQL fix just applied)
+#### Confirmed working ✅
+1. Sign in with Google → lands on `/onboarding?step=1`
+2. Step 1: Slack ID validation (error on invalid, advance on valid)
+3. Step 2: Granola key validation (error on invalid, advance on valid)
+4. Step 3: "Connect Monday.com" → Monday OAuth → redirects to step 4
+5. Step 4: Board dropdown populates → select board → advance to step 5
 6. Step 5 → Step 6 → redirect to `/dashboard`
-7. Verify DB: `users.onboarding_complete = true`, `slack_member_id` set, `user_credentials` has both rows (granola + monday)
-8. Sign out → cookie cleared → `/dashboard` redirects to `/login`
-9. Sign in again → lands on `/dashboard` (not onboarding)
+7. Dashboard shows "Oatput is running"
 
-### To resume development
-1. `cd /Users/jamescorr/Desktop/Projects/active_projects/Oatput`
-2. `npm run dev > /tmp/oatput-dev.log 2>&1 &` (logs to file for debugging)
-3. Verify: `curl http://localhost:3000/health`
-4. Browser: `http://localhost:3000/login`
-5. Continue from step 4 of the onboarding flow above
+#### Final verification ✅
+- Sign out → cookies cleared → `/dashboard` redirects to `/login` ✅
+- Sign in again → lands on `/dashboard` directly (onboarding skipped) ✅
+- DB state implicitly confirmed: sign-in → dashboard redirect proves `onboarding_complete = true`; Supabase UI also verified `slack_member_id`, `granola` + `monday` rows, `monday_board_id` populated ✅
 
 ### Notes
 - `NODE_TLS_REJECT_UNAUTHORIZED=0` is set in the `dev` npm script — dev-only macOS SSL fix, not needed on Fly.io
@@ -65,7 +65,14 @@
 - Auth uses PKCE flow via chunked base64url cookie storage adapter in `createAuthClient` — no `@supabase/ssr` needed
 - `requireAuth` must be applied per-route (not via `router.use`) to avoid intercepting public routes like `/login`
 - Debug logging still present in `src/middleware/auth.ts` and `src/routes/auth.ts` — remove before Phase 3
-- Monday OAuth app scope does not include `board_kind` field — boards query uses only `{ id name }`
+- Monday OAuth app requires `boards:read` + `boards:write` scopes configured in Monday developer center
+
+### To resume development (Phase 3)
+1. `cd /Users/jamescorr/Desktop/Projects/active_projects/Oatput`
+2. `npm run dev > /tmp/oatput-dev.log 2>&1 &`
+3. Verify: `curl http://localhost:3000/health`
+4. Remove debug logging from `src/middleware/auth.ts` and `src/routes/auth.ts`
+5. Begin Phase 3: Granola polling + action item extraction
 
 ---
 

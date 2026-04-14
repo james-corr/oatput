@@ -12,7 +12,9 @@ export function getMondayAuthUrl(state: string): string {
   const clientId = requireEnv('MONDAY_CLIENT_ID');
   const appUrl = requireEnv('APP_URL');
   const redirectUri = encodeURIComponent(`${appUrl}/auth/monday/callback`);
-  return `${MONDAY_AUTH_URL}?client_id=${clientId}&redirect_uri=${redirectUri}&state=${state}&response_type=code`;
+  // boards:read — list boards; boards:write — create items (Phase 5)
+  const scope = encodeURIComponent('boards:read boards:write');
+  return `${MONDAY_AUTH_URL}?client_id=${clientId}&redirect_uri=${redirectUri}&state=${state}&response_type=code&scope=${scope}`;
 }
 
 export async function exchangeMondayCode(code: string): Promise<string> {

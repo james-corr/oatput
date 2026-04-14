@@ -46,26 +46,31 @@ router.get('/onboarding', requireAuth, async (req, res) => {
 
   // For step 4, fetch Monday boards
   let mondayBoards: { id: string; name: string }[] | undefined;
+  let mondayBoardFetchError: string | undefined;
   if (step === 4 && mondayCred) {
-    mondayBoards = await getMondayBoards(decrypt(mondayCred.encrypted_token)).catch((err: unknown) => {
+    try {
+      mondayBoards = await getMondayBoards(decrypt(mondayCred.encrypted_token));
+    } catch (err: unknown) {
       console.error('[onboarding] Failed to fetch Monday boards:', err);
-      return [];
-    });
+      mondayBoardFetchError = 'Could not load your Monday.com boards. Please try reconnecting Monday.com.';
+      mondayBoards = [];
+    }
   }
 
   // Board name for review step (step 5)
   let boardName: string | undefined;
   if (mondayCred?.monday_board_id) {
-    if (step === 5 && mondayCred) {
+    if (step === 5) {
       const boards = await getMondayBoards(decrypt(mondayCred.encrypted_token)).catch(() => [] as { id: string; name: string }[]);
-      boardName = boards.find((b) => b.id === mondayCred.monday_board_id)?.name ?? mondayCred.monday_board_id;
+      boardName = boards.find((b) => b.id === mondayCred.monday_board_id)?.name ?? `Board #${mondayCred.monday_board_id}`;
     } else {
-      boardName = mondayCred.monday_board_id;
+      boardName = `Board #${mondayCred.monday_board_id}`;
     }
   }
 
   const html = onboardingPage(step, {
     userEmail: req.user!.email,
+    errorMessage: mondayBoardFetchError,
     mondayBoards,
     slackMemberId: user?.slack_member_id ?? undefined,
     granolaConnected,
@@ -193,17 +198,19 @@ router.post('/onboarding', requireAuth, async (req, res) => {
       return;
     }
 
-    const boards = await getMondayBoards(decrypt(mondayCredResult.data.encrypted_token)).catch(() => [] as { id: string; name: string }[]);
-    const boardExists = boards.some((b) => b.id === mondayBoardId);
-
-    if (!boardExists) {
-      const html = onboardingPage(4, {
-        userEmail: req.user!.email,
-        errorMessage: 'Board not found. Please select a board from the list.',
-        mondayBoards: boards,
-      });
-      res.send(html);
-      return;
+    // Validate board exists in user's list; if fetch fails, trust the submitted ID
+    const boards = await getMondayBoards(decrypt(mondayCredResult.data.encrypted_token)).catch(() => null);
+    if (boards !== null) {
+      const boardExists = boards.some((b) => b.id === mondayBoardId);
+      if (!boardExists) {
+        const html = onboardingPage(4, {
+          userEmail: req.user!.email,
+          errorMessage: 'Board not found. Please select a board from the list.',
+          mondayBoards: boards,
+        });
+        res.send(html);
+        return;
+      }
     }
 
     const { error } = await serviceClient

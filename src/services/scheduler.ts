@@ -2,6 +2,7 @@ import { serviceClient } from './supabase';
 import { decrypt } from './encryption';
 import { fetchNewNotes } from './granola';
 import { extractActionItems } from './extractor';
+import { sendActionItemDM } from './slack';
 
 const POLL_INTERVAL_MS = 15 * 60 * 1000; // 15 minutes
 
@@ -78,6 +79,18 @@ export async function pollUser(userId: string): Promise<void> {
     (processedRows ?? []).map((r: { granola_note_id: string }) => r.granola_note_id)
   );
 
+  // 3b. Fetch the user's Slack member ID for DM delivery
+  const { data: userRow } = await serviceClient
+    .from('users')
+    .select('slack_member_id')
+    .eq('id', userId)
+    .single();
+
+  const slackMemberId = userRow?.slack_member_id ?? null;
+  if (!slackMemberId) {
+    console.warn(`[scheduler] user ${userId}: no slack_member_id — items will be saved but not DMed`);
+  }
+
   // 4. Fetch new notes from Granola
   let notes;
   try {
@@ -107,14 +120,31 @@ export async function pollUser(userId: string): Promise<void> {
           action_item_text: text,
         }));
 
-        const { error: insertError } = await serviceClient
+        const { data: insertedRows, error: insertError } = await serviceClient
           .from('pending_action_items')
-          .insert(rows);
+          .insert(rows)
+          .select('id, action_item_text');
 
         if (insertError) {
           console.error(`[scheduler] user ${userId}: failed to insert action items for note ${note.id} — ${insertError.message}`);
           // Do not mark as processed — retry next cycle
           continue;
+        }
+
+        // Send Slack DMs for each inserted item
+        if (slackMemberId && insertedRows) {
+          for (const row of insertedRows as { id: string; action_item_text: string }[]) {
+            try {
+              const ts = await sendActionItemDM(slackMemberId, row.id, row.action_item_text, note.title);
+              await serviceClient
+                .from('pending_action_items')
+                .update({ slack_message_ts: ts })
+                .eq('id', row.id);
+            } catch (err) {
+              console.error(`[scheduler] user ${userId}: Slack DM failed for item ${row.id} — ${(err as Error).message}`);
+              // Item stays pending with null slack_message_ts; Phase 5 re-queue sweep will retry
+            }
+          }
         }
       }
 

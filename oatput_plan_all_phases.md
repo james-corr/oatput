@@ -428,6 +428,17 @@ ADMIN_TOKEN=<random string for /admin/status protection>
 
 ---
 
+## Future Updates / Quality of Life
+
+Improvements to revisit after launch — not blocking, but noted for future sprints.
+
+| # | Area | Description |
+|---|------|-------------|
+| 1 | Slack UX | After approving or skipping an action item, remove the buttons entirely from the Slack message — leave only the status text ("✅ Added to Monday" or "❌ Skipped"). Currently the updated message replaces button labels but the button UI may still render depending on Slack client version. |
+| 2 | Extractor — regex pass | Two improvements to `src/services/extractor.ts` Pass 1: (a) Add missing keyword triggers: `"Action needed"`, `"Action:"`, `"Action plan"`, `"Next steps:"`. (b) Add section-context detection: when a line matches a heading pattern (`/^(next steps|action items|action plan)\s*$/i`) treat every subsequent non-empty bullet or `Name: text` line as an action item until the next heading or two consecutive blank lines are encountered. This handles transcripts where individual lines contain no keywords but their parent heading signals they are all action items — e.g. a "Next Steps" block where each line is `Person: task`. The LLM pass (Pass 2) already catches most of these, but capturing them in Pass 1 reduces LLM token usage and improves reliability when the API is unavailable. |
+
+---
+
 ## Launch Criteria (from PRD)
 
 - A user can complete setup and connect all three services

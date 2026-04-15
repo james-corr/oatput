@@ -4,6 +4,7 @@ import 'dotenv/config';
 const REQUIRED = [
   'SUPABASE_URL', 'SUPABASE_ANON_KEY', 'SUPABASE_SERVICE_ROLE_KEY', 'ENCRYPTION_KEY',
   'MONDAY_CLIENT_ID', 'MONDAY_CLIENT_SECRET', 'APP_URL', 'ANTHROPIC_API_KEY',
+  'SLACK_BOT_TOKEN', 'SLACK_SIGNING_SECRET',
 ];
 const missing = REQUIRED.filter((k) => !process.env[k]);
 if (missing.length > 0) {
@@ -20,6 +21,7 @@ import healthRouter from './routes/health';
 import authRouter from './routes/auth';
 import onboardingRouter from './routes/onboarding';
 import dashboardRouter from './routes/dashboard';
+import slackRouter from './routes/slack';
 import { loginPage } from './views/login';
 import { startScheduler } from './services/scheduler';
 
@@ -27,7 +29,10 @@ const app = express();
 const PORT = process.env.PORT ?? 3000;
 
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.urlencoded({
+  extended: true,
+  verify: (req: express.Request & { rawBody?: Buffer }, _res, buf) => { req.rawBody = buf; },
+}));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
@@ -35,6 +40,7 @@ app.use(healthRouter);
 app.use(authRouter);
 app.use(onboardingRouter);
 app.use(dashboardRouter);
+app.use(slackRouter);
 
 // Root redirect to login
 app.get('/', (_req, res) => {

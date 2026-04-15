@@ -3,7 +3,7 @@
 ## Status & Where to Pick Up
 
 **Last updated:** 2026-04-14
-**Current status:** Phase 3 DONE ✅ — Granola polling, action item extraction (regex + Claude), scheduler wired up
+**Current status:** Phase 4 DONE ✅ — Slack DMs delivered, approve/deny interactions working, DB status updates confirmed
 
 ### Phase 1 — DONE ✅
 - TypeScript project scaffolded, all dependencies installed
@@ -103,17 +103,47 @@
 - `GET /dev/poll/:userId` absent in production (`NODE_ENV=production`)
 - Watermark defaults to `now - 24h` for new users
 
-### To resume development (Phase 4)
+### Phase 4 — DONE ✅
+
+#### What was built
+- `src/services/slack.ts` — `sendActionItemDM()` sends Block Kit DM with Approve/Deny buttons; `updateActionItemMessage()` calls `chat.update` to replace buttons with outcome text
+- `src/routes/slack.ts` — `POST /slack/interactions`: HMAC-SHA256 Slack signature verification, duplicate-click guard (`status != 'pending'` → silent 200), approve/deny routing, Monday stub called on approve
+- `src/services/scheduler.ts` — after inserting action items, fetches `slack_member_id`, calls `sendActionItemDM()` per item, stores returned `ts` in `slack_message_ts`
+- `src/server.ts` — `SLACK_BOT_TOKEN` + `SLACK_SIGNING_SECRET` added to `REQUIRED`; `express.urlencoded` verify hook captures `req.rawBody` for signature verification; `slackRouter` mounted
+- `src/types/express.d.ts` — added `rawBody?: Buffer`
+- `.env.example` — Slack vars added with setup instructions
+- `package.json` — `@slack/web-api` added
+
+#### Bug fixed during testing
+- **Wrong channel ID for `chat.update`** — `sendActionItemDM` posts to a user ID (`U...`) but Slack routes it to a DM channel (`D...`). `chat.update` was re-using the user ID and failing silently. Fixed by reading `payload.channel.id` directly from the interaction payload and passing that to `updateActionItemMessage()` instead.
+
+#### Slack app setup (one-time, already done)
+- App created at api.slack.com with Bot Token Scopes: `chat:write`, `im:write`
+- Interactivity enabled; Request URL pointed at ngrok tunnel + `/slack/interactions`
+- `SLACK_BOT_TOKEN` + `SLACK_SIGNING_SECRET` added to `.env`
+
+#### Confirmed working ✅
+- Polling via `GET /dev/poll/:userId` sends Slack DMs for each extracted action item
+- DM text is accurate: meeting title + action item text
+- Clicking "✅ Add to Monday" → message updates, DB `status = approved`
+- Clicking "❌ Skip" → message updates, DB `status = denied`
+- Duplicate clicks silently ignored (duplicate-click guard working)
+
+#### Notes
+- ngrok tunnel URL changes each dev session — update Slack app Interactivity Request URL each time
+- Monday task creation is still a stub (logs only) — completed in Phase 5
+
+### To resume development (Phase 5)
 1. `cd /Users/jamescorr/Desktop/Projects/active_projects/Oatput`
-2. `npm run dev` (ANTHROPIC_API_KEY already in .env)
-3. Phase 4: Slack delivery + approve/deny interactions
-   - Create Slack app at api.slack.com → get Bot Token + Signing Secret
-   - Add `SLACK_BOT_TOKEN` + `SLACK_SIGNING_SECRET` to `.env`
-   - Build `src/services/slack.ts` — Block Kit DMs with Approve/Deny buttons
-   - Build `POST /slack/interactions` — verify signing secret, route button clicks
-   - On deny: update `status = 'denied'`, update Slack message to "❌ Skipped"
-   - On approve: update `status = 'approved'`, stub Monday call (Phase 5 completes it)
-   - `pending_action_items` already has rows from Phase 3 testing — usable for Phase 4 Slack testing
+2. Start ngrok: `ngrok http 3000` → update Slack app Interactivity Request URL
+3. `npm run dev`
+4. Phase 5: Monday.com task creation + full loop
+   - Complete `createMondayTask()` GraphQL mutation in `src/services/monday.ts` — `create_item` mutation, returns item URL
+   - On approve in `src/routes/slack.ts`: call `createMondayTask()`, then `chat.update` Slack message to "✅ Added to Monday → [link]"
+   - On Monday API failure: retry up to 3× with exponential backoff; on final failure set `status = 'failed'`, send fallback Slack message
+   - Add migration: `retry_count INTEGER DEFAULT 0` column already exists in schema; add `'failed'` handling
+   - Scheduler sweep: re-queue `pending` items with no `slack_message_ts` older than 5 min
+   - Dashboard: flesh out with recent action items table showing status badges, meeting title, timestamp
 
 ---
 
@@ -436,7 +466,8 @@ Improvements to revisit after launch — not blocking, but noted for future spri
 |---|------|-------------|
 | 1 | Slack UX | After approving or skipping an action item, remove the buttons entirely from the Slack message — leave only the status text ("✅ Added to Monday" or "❌ Skipped"). Currently the updated message replaces button labels but the button UI may still render depending on Slack client version. |
 | 2 | Extractor — regex pass | Two improvements to `src/services/extractor.ts` Pass 1: (a) Add missing keyword triggers: `"Action needed"`, `"Action:"`, `"Action plan"`, `"Next steps:"`. (b) Add section-context detection: when a line matches a heading pattern (`/^(next steps|action items|action plan)\s*$/i`) treat every subsequent non-empty bullet or `Name: text` line as an action item until the next heading or two consecutive blank lines are encountered. This handles transcripts where individual lines contain no keywords but their parent heading signals they are all action items — e.g. a "Next Steps" block where each line is `Person: task`. The LLM pass (Pass 2) already catches most of these, but capturing them in Pass 1 reduces LLM token usage and improves reliability when the API is unavailable. |
-
+| 3 | Expand task output destinations | Major upgrade to include the ablitiy to send action items to other destiations like Asana or Todoist
+| 4 | Expand task listening sources | Very large major upgrade, bigger than integrating with more output destinations, to include the ability to use a different call transcription tool like Gong, Avoma, Gemini (?) etc. 
 ---
 
 ## Launch Criteria (from PRD)

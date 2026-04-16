@@ -12,6 +12,7 @@ export async function sendActionItemDM(
 ): Promise<string> {
   const result = await client.chat.postMessage({
     channel: slackMemberId,
+    text: `Action item from ${meetingTitle}: ${itemText}`,
     blocks: [
       {
         type: 'section',
@@ -49,22 +50,20 @@ export async function sendActionItemDM(
   return result.ts;
 }
 
-// Updates an existing action item DM to reflect the approved/denied outcome.
-// Replaces the buttons with a plain confirmation line.
+// Updates an existing action item DM to reflect the outcome.
+// Replaces the buttons with the provided outcome text.
 export async function updateActionItemMessage(
-  slackMemberId: string,
+  channelId: string,
   messageTs: string,
-  approved: boolean
+  text: string
 ): Promise<void> {
-  const text = approved ? '✅ Added to Monday' : '❌ Skipped';
-
   const result = await client.chat.update({
-    channel: slackMemberId,
+    channel: channelId,
     ts: messageTs,
     blocks: [
       {
         type: 'section',
-        text: { type: 'mrkdwn', text: text },
+        text: { type: 'mrkdwn', text },
       },
     ],
     text,

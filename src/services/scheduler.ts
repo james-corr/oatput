@@ -41,6 +41,48 @@ async function getWatermark(userId: string): Promise<Date> {
   return new Date(data.processed_at);
 }
 
+// Re-sends Slack DMs for pending items that never received one (Slack failure during insert).
+// Runs at the top of each poll cycle as a safety sweep.
+async function requeuePendingItems(userId: string, slackMemberId: string): Promise<void> {
+  const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+  const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+
+  const { data: items, error } = await serviceClient
+    .from('pending_action_items')
+    .select('id, action_item_text, meeting_title')
+    .eq('user_id', userId)
+    .eq('status', 'pending')
+    .is('slack_message_ts', null)
+    .lt('created_at', fiveMinutesAgo)
+    .gt('created_at', twentyFourHoursAgo);
+
+  if (error) {
+    console.error(`[scheduler] user ${userId}: requeue sweep failed — ${error.message}`);
+    return;
+  }
+
+  if (!items?.length) return;
+
+  console.log(`[scheduler] user ${userId}: re-queuing ${items.length} undelivered item(s)`);
+
+  for (const item of items as { id: string; action_item_text: string; meeting_title: string | null }[]) {
+    try {
+      const ts = await sendActionItemDM(
+        slackMemberId,
+        item.id,
+        item.action_item_text,
+        item.meeting_title ?? 'Unknown meeting'
+      );
+      await serviceClient
+        .from('pending_action_items')
+        .update({ slack_message_ts: ts })
+        .eq('id', item.id);
+    } catch (err) {
+      console.error(`[scheduler] user ${userId}: requeue DM failed for item ${item.id} — ${(err as Error).message}`);
+    }
+  }
+}
+
 // Runs one full poll cycle for a single user.
 // Never throws — all errors are caught and logged.
 export async function pollUser(userId: string): Promise<void> {
@@ -91,6 +133,11 @@ export async function pollUser(userId: string): Promise<void> {
     console.warn(`[scheduler] user ${userId}: no slack_member_id — items will be saved but not DMed`);
   }
 
+  // 3c. Re-queue any pending items that never received a Slack DM
+  if (slackMemberId) {
+    await requeuePendingItems(userId, slackMemberId);
+  }
+
   // 4. Fetch new notes from Granola
   let notes;
   try {
@@ -118,6 +165,7 @@ export async function pollUser(userId: string): Promise<void> {
           user_id: userId,
           granola_note_id: note.id,
           action_item_text: text,
+          meeting_title: note.title,
         }));
 
         const { data: insertedRows, error: insertError } = await serviceClient

@@ -28,7 +28,14 @@ router.get('/dashboard', requireAuth, async (req, res) => {
     return;
   }
 
-  res.send(dashboardPage(req.user!.email));
+  const { data: recentItems } = await serviceClient
+    .from('pending_action_items')
+    .select('id, action_item_text, meeting_title, status, created_at')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+    .limit(20);
+
+  res.send(dashboardPage(req.user!.email, recentItems ?? []));
 });
 
 // GET /settings

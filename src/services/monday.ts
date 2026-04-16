@@ -75,12 +75,57 @@ export async function getMondayBoards(accessToken: string): Promise<{ id: string
   return (data.data?.boards ?? []).map((b) => ({ id: b.id, name: b.name }));
 }
 
-// Stub — full implementation in Phase 5
+// Creates a Monday.com task on the user's configured board.
+// Returns the item URL (e.g. https://workspace.monday.com/boards/.../pulses/...) or '' if unavailable.
+// Throws on HTTP or GraphQL errors so the caller can apply retry logic.
 export async function createMondayTask(
-  _accessToken: string,
-  _boardId: string,
-  _itemName: string
+  accessToken: string,
+  boardId: string,
+  itemName: string
 ): Promise<string> {
-  console.log('[monday] createMondayTask stub — Phase 5');
-  return '';
+  const boardIdInt = parseInt(boardId, 10);
+  if (isNaN(boardIdInt)) {
+    throw new Error(`[monday] Invalid board ID: ${boardId}`);
+  }
+
+  const query = `
+    mutation CreateItem($boardId: ID!, $itemName: String!) {
+      create_item(board_id: $boardId, item_name: $itemName) {
+        id
+        url
+      }
+    }
+  `;
+
+  const response = await fetch(MONDAY_API_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify({
+      query,
+      variables: { boardId: boardIdInt, itemName },
+    }),
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`[monday] create_item failed (${response.status}): ${text}`);
+  }
+
+  const data = (await response.json()) as {
+    data?: { create_item?: { id: string; url?: string } };
+    errors?: { message: string }[];
+  };
+
+  if (data.errors?.length) {
+    throw new Error(`[monday] GraphQL error: ${data.errors[0].message}`);
+  }
+
+  if (!data.data?.create_item?.id) {
+    throw new Error('[monday] create_item returned no item ID');
+  }
+
+  return data.data.create_item.url ?? '';
 }

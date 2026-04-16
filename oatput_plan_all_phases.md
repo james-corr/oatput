@@ -2,8 +2,8 @@
 
 ## Status & Where to Pick Up
 
-**Last updated:** 2026-04-14
-**Current status:** Phase 4 DONE ✅ — Slack DMs delivered, approve/deny interactions working, DB status updates confirmed
+**Last updated:** 2026-04-15
+**Current status:** Phase 5 DONE ✅ — Full loop confirmed working: Granola → Slack DM → Approve → Monday.com task created with link
 
 ### Phase 1 — DONE ✅
 - TypeScript project scaffolded, all dependencies installed
@@ -133,17 +133,40 @@
 - ngrok tunnel URL changes each dev session — update Slack app Interactivity Request URL each time
 - Monday task creation is still a stub (logs only) — completed in Phase 5
 
-### To resume development (Phase 5)
+### Phase 5 — DONE ✅
+
+#### What was built
+- `supabase/migrations/20260415_add_meeting_title.sql` — adds `meeting_title TEXT` column to `pending_action_items`
+- `src/services/monday.ts` — `createMondayTask()` fully implemented: `create_item` GraphQL mutation with variables, returns item URL; throws on HTTP/GraphQL errors for caller retry
+- `src/services/slack.ts` — `updateActionItemMessage()` now takes `text: string` instead of `approved: boolean`, enabling approve-with-link, deny, and failure fallback messages
+- `src/routes/slack.ts` — approve flow restructured: fetches Monday credentials, calls `createMondayTask()` via `withRetry()` (3× with 1s/2s/4s backoff); on success sets `status='approved'` and updates Slack with "✅ Added to Monday → [link]"; on final failure sets `status='failed'`, increments `retry_count`, sends "⚠️ Could not create Monday task — please add manually"
+- `src/services/scheduler.ts` — `requeuePendingItems()` re-sends Slack DMs for pending items with no `slack_message_ts` older than 5 min; called at start of each `pollUser()` cycle; action item inserts now include `meeting_title: note.title`
+- `src/views/dashboard.ts` — `dashboardPage()` now accepts `recentItems: ActionItemRow[]`; renders a full action items table with status badges (Pending/Added/Skipped/Failed), meeting title, truncated action item text, and date; empty state when no items
+- `src/routes/dashboard.ts` — fetches last 20 action items for user (newest first) and passes to `dashboardPage()`
+- `src/types/index.ts` — `PendingActionItem` now includes `meeting_title: string | null` and `retry_count: number`
+
+#### Bugs fixed during testing
+- **Re-queue sweep flooded Slack on startup** — 91 action items from Phase 3 testing had `slack_message_ts = NULL` (inserted before Slack DM sending existed). The re-queue sweep correctly found them all and tried to send 91 DMs at once, hitting Slack rate limits. Fixed by adding a 24-hour upper age bound to `requeuePendingItems()` — only re-queues items created in the last 24 hours, ignoring old test data.
+- **Missing top-level `text` field in `sendActionItemDM`** — Slack Web API warns when `chat.postMessage` is called with blocks but no top-level `text` fallback (used by screen readers and push notifications). Added `text: \`Action item from ${meetingTitle}: ${itemText}\`` to the call.
+
+#### Migration — APPLIED ✅
+`meeting_title TEXT` column added to `pending_action_items` via Supabase SQL Editor.
+
+#### Confirmed working ✅
+- Full end-to-end loop: `GET /dev/poll/:userId` → Slack DM → "✅ Add to Monday" → Monday task created → Slack message updates with task link
+- "❌ Skip" → message updates to "❌ Skipped", `status = denied`
+- Monday tasks appearing in the configured board
+- ngrok static domain (`demeaning-unit-nanny.ngrok-free.dev`) is stable across sessions — no need to update Slack Request URL each restart
+
+#### Notes
+- 91 old Phase 3 test items remain in DB with `status = 'pending'`. Bulk-deny if needed: `UPDATE pending_action_items SET status = 'denied' WHERE created_at < now() - interval '1 day'`
+- Slack Interactivity Request URL: `https://demeaning-unit-nanny.ngrok-free.dev/slack/interactions`
+
+### To resume development (Phase 6)
 1. `cd /Users/jamescorr/Desktop/Projects/active_projects/Oatput`
-2. Start ngrok: `ngrok http 3000` → update Slack app Interactivity Request URL
+2. Start ngrok: `ngrok http 3000` (static domain — Slack URL stays the same)
 3. `npm run dev`
-4. Phase 5: Monday.com task creation + full loop
-   - Complete `createMondayTask()` GraphQL mutation in `src/services/monday.ts` — `create_item` mutation, returns item URL
-   - On approve in `src/routes/slack.ts`: call `createMondayTask()`, then `chat.update` Slack message to "✅ Added to Monday → [link]"
-   - On Monday API failure: retry up to 3× with exponential backoff; on final failure set `status = 'failed'`, send fallback Slack message
-   - Add migration: `retry_count INTEGER DEFAULT 0` column already exists in schema; add `'failed'` handling
-   - Scheduler sweep: re-queue `pending` items with no `slack_message_ts` older than 5 min
-   - Dashboard: flesh out with recent action items table showing status badges, meeting title, timestamp
+4. Phase 6: Production hardening + Fly.io deploy
 
 ---
 

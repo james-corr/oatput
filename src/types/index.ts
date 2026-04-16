@@ -28,8 +28,10 @@ export interface PendingActionItem {
   user_id: string;
   granola_note_id: string;
   action_item_text: string;
+  meeting_title: string | null;
   slack_message_ts: string | null;
   status: 'pending' | 'approved' | 'denied' | 'failed';
+  retry_count: number;
   created_at: string;
 }
 

@@ -28,6 +28,26 @@ function verifySlackSignature(req: express.Request, rawBody: Buffer): boolean {
   }
 }
 
+// Retries an async function up to maxAttempts times with exponential backoff.
+async function withRetry<T>(
+  fn: () => Promise<T>,
+  maxAttempts: number,
+  baseDelayMs: number
+): Promise<T> {
+  let lastErr: Error = new Error('unknown');
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      lastErr = err as Error;
+      if (attempt < maxAttempts - 1) {
+        await new Promise((resolve) => setTimeout(resolve, baseDelayMs * Math.pow(2, attempt)));
+      }
+    }
+  }
+  throw lastErr;
+}
+
 // POST /slack/interactions
 // Handles Slack Block Kit button clicks (approve / deny).
 router.post('/slack/interactions', async (req, res) => {
@@ -72,10 +92,10 @@ router.post('/slack/interactions', async (req, res) => {
   // Respond to Slack immediately (must reply within 3s)
   res.status(200).send();
 
-  // Fetch the action item
+  // Fetch the action item (include retry_count for failure tracking)
   const { data: item, error: itemError } = await serviceClient
     .from('pending_action_items')
-    .select('id, user_id, status, action_item_text')
+    .select('id, user_id, status, action_item_text, retry_count')
     .eq('id', itemId)
     .single();
 
@@ -102,7 +122,7 @@ router.post('/slack/interactions', async (req, res) => {
     }
 
     try {
-      await updateActionItemMessage(channelId, messageTs, false);
+      await updateActionItemMessage(channelId, messageTs, '❌ Skipped');
     } catch (err) {
       console.error(`[slack] chat.update failed for item ${itemId}:`, (err as Error).message);
     }
@@ -110,38 +130,70 @@ router.post('/slack/interactions', async (req, res) => {
     return;
   }
 
-  // approve
-  const { error: updateError } = await serviceClient
-    .from('pending_action_items')
-    .update({ status: 'approved' })
-    .eq('id', itemId);
+  // approve — fetch Monday credentials then create the task
+  const { data: credRow, error: credError } = await serviceClient
+    .from('user_credentials')
+    .select('encrypted_token, monday_board_id')
+    .eq('user_id', item.user_id)
+    .eq('service', 'monday')
+    .single();
 
-  if (updateError) {
-    console.error(`[slack] failed to set status=approved for item ${itemId}:`, updateError.message);
-    return;
+  if (credError || !credRow) {
+    console.error(`[slack] no Monday credentials for user ${item.user_id}`);
   }
 
-  // Stub Monday task creation (Phase 5 completes this)
-  try {
-    const { data: credRow } = await serviceClient
-      .from('user_credentials')
-      .select('encrypted_token, monday_board_id')
-      .eq('user_id', item.user_id)
-      .eq('service', 'monday')
-      .single();
+  let taskUrl = '';
+  let mondaySuccess = false;
 
-    if (credRow) {
+  if (credRow) {
+    try {
       const accessToken = decrypt(credRow.encrypted_token);
-      await createMondayTask(accessToken, credRow.monday_board_id ?? '', item.action_item_text);
+      taskUrl = await withRetry(
+        () => createMondayTask(accessToken, credRow.monday_board_id ?? '', item.action_item_text),
+        3,
+        1000
+      );
+      mondaySuccess = true;
+    } catch (err) {
+      console.error(`[slack] Monday task creation failed for item ${itemId} after 3 attempts:`, (err as Error).message);
     }
-  } catch (err) {
-    console.error(`[slack] Monday task creation failed for item ${itemId}:`, (err as Error).message);
   }
 
-  try {
-    await updateActionItemMessage(channelId, messageTs, true);
-  } catch (err) {
-    console.error(`[slack] chat.update failed for item ${itemId}:`, (err as Error).message);
+  if (mondaySuccess) {
+    const { error: updateError } = await serviceClient
+      .from('pending_action_items')
+      .update({ status: 'approved' })
+      .eq('id', itemId);
+
+    if (updateError) {
+      console.error(`[slack] failed to set status=approved for item ${itemId}:`, updateError.message);
+    }
+
+    const successText = taskUrl
+      ? `✅ Added to Monday → ${taskUrl}`
+      : '✅ Added to Monday';
+
+    try {
+      await updateActionItemMessage(channelId, messageTs, successText);
+    } catch (err) {
+      console.error(`[slack] chat.update failed for item ${itemId}:`, (err as Error).message);
+    }
+  } else {
+    // Final failure after retries — mark failed and notify user
+    const { error: updateError } = await serviceClient
+      .from('pending_action_items')
+      .update({ status: 'failed', retry_count: (item.retry_count ?? 0) + 1 })
+      .eq('id', itemId);
+
+    if (updateError) {
+      console.error(`[slack] failed to set status=failed for item ${itemId}:`, updateError.message);
+    }
+
+    try {
+      await updateActionItemMessage(channelId, messageTs, '⚠️ Could not create Monday task — please add manually');
+    } catch (err) {
+      console.error(`[slack] chat.update failed for item ${itemId}:`, (err as Error).message);
+    }
   }
 });
 

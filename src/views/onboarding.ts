@@ -143,7 +143,7 @@ function stepContent(step: number, data: OnboardingPageData): string {
       return `
         <h2 style="font-size: 1.4rem; font-weight: 400; margin: 0 0 8px; color: var(--text);">Connect Monday.com</h2>
         <p style="color: var(--taupe); margin: 0 0 24px; font-size: 0.95rem;">
-          Authorize Oatput to create tasks in your Monday.com workspace.
+          Authorize Output to create tasks in your Monday.com workspace.
           You'll be redirected to Monday.com and back.
         </p>
         ${err}
@@ -214,7 +214,7 @@ function stepContent(step: number, data: OnboardingPageData): string {
       return `
         <h2 style="font-size: 1.4rem; font-weight: 400; margin: 0 0 8px; color: var(--text);">Review Your Setup</h2>
         <p style="color: var(--taupe); margin: 0 0 24px; font-size: 0.95rem;">
-          Everything looks good? Confirm and Oatput will start running.
+          Everything looks good? Confirm and Output will start running.
         </p>
         ${err}
         <div style="margin-bottom: 28px;">
@@ -242,7 +242,7 @@ function stepContent(step: number, data: OnboardingPageData): string {
       return `
         <h2 style="font-size: 1.4rem; font-weight: 400; margin: 0 0 8px; color: var(--text);">You're all set</h2>
         <p style="color: var(--taupe); margin: 0 0 8px; font-size: 0.95rem;">
-          Oatput is now running. After your next meeting in Granola, action items will arrive in your Slack within ~15 minutes for approval.
+          Output is now running. After your next meeting in Granola, action items will arrive in your Slack within ~15 minutes for approval.
         </p>
         <p style="color: var(--taupe); margin: 0 0 28px; font-size: 0.9rem; font-style: italic;">
           Approve → Monday.com task is created instantly.<br>
@@ -264,7 +264,7 @@ export function onboardingPage(step: number, data: OnboardingPageData): string {
 
     <!-- Header -->
     <div style="text-align: center; margin-bottom: 40px;">
-      <img src="/oatPut_logo.png" alt="Oatput" style="width: 100px; margin-bottom: 12px;">
+      <img src="/output_logo.png" alt="Output" style="width: 100px; margin-bottom: 12px;">
       <p style="color: var(--taupe); font-size: 0.75rem; letter-spacing: 0.2em; text-transform: uppercase; margin: 0;">Setup</p>
     </div>
 
@@ -283,5 +283,5 @@ export function onboardingPage(step: number, data: OnboardingPageData): string {
   </div>
 </div>`;
 
-  return pageShell('Oatput — Setup', body);
+  return pageShell('Output — Setup', body);
 }

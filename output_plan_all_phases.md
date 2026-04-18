@@ -1,4 +1,4 @@
-# Oatput — Build Plan: All Phases
+# Output — Build Plan: All Phases
 
 ## Status & Where to Pick Up
 
@@ -14,7 +14,7 @@
 - `src/services/supabase.ts` — anonClient + serviceClient initialized
 - `GET /health` returns `{"status":"ok","db":"connected"}` ✅
 - `fly.toml` + `Dockerfile` written, deployment deferred to Phase 6
-- `public/oatPut_logo.png` in place as static asset
+- `public/output_logo.png` in place as static asset
 
 ### Phase 2 — DONE ✅
 
@@ -51,7 +51,7 @@
 4. Step 3: "Connect Monday.com" → Monday OAuth → redirects to step 4
 5. Step 4: Board dropdown populates → select board → advance to step 5
 6. Step 5 → Step 6 → redirect to `/dashboard`
-7. Dashboard shows "Oatput is running"
+7. Dashboard shows "Output is running"
 
 #### Final verification ✅
 - Sign out → cookies cleared → `/dashboard` redirects to `/login` ✅
@@ -173,14 +173,14 @@
 
 ## Context
 
-App name: **Oatput**. Greenfield build of a multi-user web service that automates moving meeting action items from Granola → Slack approval flow → Monday.com tasks. After meetings, action items currently live in Granola and require manual effort to move into Monday.com. This app automates the routing while keeping a human in the loop via Slack Approve/Deny buttons.
+App name: **Output**. Greenfield build of a multi-user web service that automates moving meeting action items from Granola → Slack approval flow → Monday.com tasks. After meetings, action items currently live in Granola and require manual effort to move into Monday.com. This app automates the routing while keeping a human in the loop via Slack Approve/Deny buttons.
 
 **Stack:** Node.js + TypeScript, Express, Tailwind CSS (via CDN in HTML templates for server-rendered views), Supabase (Postgres + Auth), Fly.io deployment. Claude API for LLM extraction pass. Slack Web API (not Bolt), Monday.com GraphQL API, Granola REST API. Google OAuth via Supabase Auth.
 
 **Google Tag Manager:** GTM container ID `GTM-MDD8QKSD` embedded in all HTML pages (head snippet + body noscript) for GA4 from day one.
 
 **PRD:** `granola_monday_slack_PRD.md` (same directory)
-**Logo:** `oatPut_logo.png` (same directory)
+**Logo:** `output_logo.png` (same directory)
 
 ---
 
@@ -341,7 +341,7 @@ All pages are server-rendered HTML with Tailwind CSS (via CDN).
 
 ### Design system
 
-Derived from `oatPut_logo.png` — "premium oat packaging meets productivity software." Warm, organic, refined, modern-minimal. **Not** the dark teal of Trailmix.
+Derived from `output_logo.png` — "premium oat packaging meets productivity software." Warm, organic, refined, modern-minimal. **Not** the dark teal of Trailmix.
 
 **Typography:**
 - Serif typeface similar to Georgia — classic, proportional, low contrast, regular weight (not bold)
@@ -362,7 +362,7 @@ Derived from `oatPut_logo.png` — "premium oat packaging meets productivity sof
 
 Warm neutrals only — no cool grays, no stark whites, no saturated colors. Palette feels like unbleached linen, dried grain, and morning light.
 
-**Logo:** `oatPut_logo.png` — circular speech-bubble + oat-leaf + checkmark mark, "OATPUT" wordmark, tagline "MEETING TO ACTION. AMPLIFIED." — sidebar header (small) and login page (large)
+**Logo:** `output_logo.png` — circular speech-bubble + oat-leaf + checkmark mark, "OUTPUT" wordmark, tagline "MEETING TO ACTION. AMPLIFIED." — sidebar header (small) and login page (large)
 
 **Sidebar:** Fixed left nav, ~140px wide, parchment background, `--grain` accent on active link; user info in `--taupe`
 
@@ -371,7 +371,7 @@ Warm neutrals only — no cool grays, no stark whites, no saturated colors. Pale
 ### Pages/routes
 
 **`GET /login`** — Split-screen landing page:
-- Left 60%: cream background with `oatPut_logo.png` centered, tagline "Meeting to action. Amplified.", subtle leaf/grain SVG decoration
+- Left 60%: cream background with `output_logo.png` centered, tagline "Meeting to action. Amplified.", subtle leaf/grain SVG decoration
 - Right 40%: warm off-white panel, "WELCOME BACK" label in brown, golden "Sign in with Google" button
 - GTM snippet in `<head>` and `<body noscript>` of this and all other pages
 - Clicking Google → Supabase Auth OAuth → redirects to `/onboarding` (or `/dashboard` if already onboarded)
@@ -388,7 +388,7 @@ Warm neutrals only — no cool grays, no stark whites, no saturated colors. Pale
 
 **`GET /dashboard`** — Post-onboarding home:
 - Sidebar nav (Dashboard, Settings) + user name/email + Sign out
-- "Oatput is running" status card (stub; populated in Phase 5 with recent action items)
+- "Output is running" status card (stub; populated in Phase 5 with recent action items)
 
 **`GET /settings`** — Re-configure any connected service (stub in Phase 2)
 
@@ -403,7 +403,7 @@ Warm neutrals only — no cool grays, no stark whites, no saturated colors. Pale
 - `src/views/layout.ts` — shared HTML shell with GTM snippet (`GTM-MDD8QKSD`) in `<head>` and `<body noscript>`, Tailwind CDN, CSS variables for design tokens
 - `src/views/` — HTML template strings (TS template literals, no templating engine)
 - `src/services/monday.ts` — thin GraphQL client (workspace + board list; task creation stub)
-- `public/oatPut_logo.png` — logo served as static asset via `express.static('public')`
+- `public/output_logo.png` — logo served as static asset via `express.static('public')`
 
 ---
 

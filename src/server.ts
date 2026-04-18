@@ -8,8 +8,8 @@ const REQUIRED = [
 ];
 const missing = REQUIRED.filter((k) => !process.env[k]);
 if (missing.length > 0) {
-  console.error(`[oatput] Missing required environment variables: ${missing.join(', ')}`);
-  console.error('[oatput] Copy .env.example to .env and fill in the values.');
+  console.error(`[output] Missing required environment variables: ${missing.join(', ')}`);
+  console.error('[output] Copy .env.example to .env and fill in the values.');
   process.exit(1);
 }
 
@@ -53,12 +53,12 @@ app.get('/login', (_req, res) => {
 
 // Global error handler
 app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-  console.error('[oatput] Unhandled error:', err.message);
+  console.error('[output] Unhandled error:', err.message);
   res.status(500).json({ error: 'Internal server error' });
 });
 
 app.listen(PORT, () => {
-  console.log(`[oatput] Server running on http://localhost:${PORT}`);
+  console.log(`[output] Server running on http://localhost:${PORT}`);
   startScheduler();
 });
 

@@ -93,7 +93,7 @@ export function dashboardPage(email: string, recentItems: ActionItemRow[]): stri
     ">
       <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
         <span style="color: var(--leaf); font-size: 1.1rem;">●</span>
-        <h2 style="font-size: 1.1rem; font-weight: 500; margin: 0; color: var(--leaf);">Oatput is running</h2>
+        <h2 style="font-size: 1.1rem; font-weight: 500; margin: 0; color: var(--leaf);">Output is running</h2>
       </div>
       <p style="color: var(--taupe); margin: 0; font-size: 0.9rem;">
         Action items will arrive in Slack after your meetings. Approve to create a Monday.com task, or skip to dismiss.
@@ -106,7 +106,7 @@ export function dashboardPage(email: string, recentItems: ActionItemRow[]): stri
   </div>
 </div>`;
 
-  return pageShell('Oatput — Dashboard', body);
+  return pageShell('Output — Dashboard', body);
 }
 
 export function settingsPage(email: string, connections: ConnectionStatus): string {
@@ -179,5 +179,5 @@ export function settingsPage(email: string, connections: ConnectionStatus): stri
   </div>
 </div>`;
 
-  return pageShell('Oatput — Settings', body);
+  return pageShell('Output — Settings', body);
 }

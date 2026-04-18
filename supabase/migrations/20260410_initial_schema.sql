@@ -1,4 +1,4 @@
--- Oatput initial schema
+-- Output initial schema
 -- Apply with: supabase db push
 
 -- users references auth.users so Google OAuth auto-creates the identity row

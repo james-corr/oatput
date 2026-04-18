@@ -103,7 +103,7 @@ export function sidebar(email: string, activePage: 'dashboard' | 'settings'): st
     z-index: 10;
   ">
     <div style="margin-bottom: 28px;">
-      <img src="/oatPut_logo.png" alt="Oatput" style="width: 80px; display: block;">
+      <img src="/output_logo.png" alt="Output" style="width: 80px; display: block;">
     </div>
     <nav style="flex: 1; display: flex; flex-direction: column; gap: 4px;">
       ${link('/dashboard', 'Dashboard', 'dashboard')}

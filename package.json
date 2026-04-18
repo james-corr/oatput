@@ -1,5 +1,5 @@
 {
-  "name": "oatput",
+  "name": "output",
   "version": "0.1.0",
   "description": "Meeting to action. Amplified.",
   "main": "dist/server.js",

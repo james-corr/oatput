@@ -1,4 +1,4 @@
-### Oatput UI Updates
+### Output UI Updates
 
 ## Setup flow
 - "Connect Slack" screen needs updates, it's pretty ugly. 
@@ -10,5 +10,5 @@
 Default to darker brown color vs. the light/papyrus color of the app right now.
 
 ## Exits
-- Need a way to break a previous integraiton/setup, currently you can't "stop" Oatput from running
+- Need a way to break a previous integraiton/setup, currently you can't "stop" Output from running
 - Need a way to change the Monday board that is being action items - i.e. go from board a to board b, same thing for selecting workspaces I guess too? 

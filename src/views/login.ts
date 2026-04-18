@@ -29,7 +29,7 @@ export function loginPage(): string {
     padding: 48px;
     position: relative;
   ">
-    <img src="/oatPut_logo.png" alt="Oatput" style="width: 220px; margin-bottom: 24px;">
+    <img src="/output_logo.png" alt="Output" style="width: 220px; margin-bottom: 24px;">
     <p style="
       color: var(--taupe);
       font-size: 1rem;
@@ -81,5 +81,5 @@ export function loginPage(): string {
 
 </div>`;
 
-  return pageShell('Oatput — Sign In', body);
+  return pageShell('Output — Sign In', body);
 }

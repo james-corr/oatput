@@ -1,10 +1,10 @@
-# Oatput
+# Output
 
 **Meeting to action. Amplified.**
 
-Oatput is a multi-user web service that automatically routes action items from your meeting notes into Monday.com tasks — with a human-in-the-loop approval step via Slack.
+Output is a multi-user web service that automatically routes action items from your meeting notes into Monday.com tasks — with a human-in-the-loop approval step via Slack.
 
-After a meeting, action items live in [Granola](https://granola.ai) but require manual effort to move into Monday.com. Oatput eliminates that friction: it polls your Granola notes, extracts action items using a heuristic + LLM pipeline, sends each one to you as a Slack DM with Approve/Deny buttons, and creates the approved ones as tasks in Monday.com automatically.
+After a meeting, action items live in [Granola](https://granola.ai) but require manual effort to move into Monday.com. Output eliminates that friction: it polls your Granola notes, extracts action items using a heuristic + LLM pipeline, sends each one to you as a Slack DM with Approve/Deny buttons, and creates the approved ones as tasks in Monday.com automatically.
 
 ---
 
@@ -96,7 +96,7 @@ See `.env.example` for the full list. Key variables:
 | `ENCRYPTION_KEY` | 32-byte hex string for AES-256-GCM (`openssl rand -hex 32`) |
 | `MONDAY_CLIENT_ID` | Monday.com OAuth app client ID |
 | `MONDAY_CLIENT_SECRET` | Monday.com OAuth app client secret |
-| `APP_URL` | Public URL of the app (e.g. `https://oatput.fly.dev`) |
+| `APP_URL` | Public URL of the app (e.g. `https://output.fly.dev`) |
 
 ---
 
